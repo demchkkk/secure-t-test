@@ -1,0 +1,50 @@
+- hosts: backend
+  become: true
+  vars:
+    db_host: 192.168.56.12
+    db_name: appdb
+    db_user: appuser
+    db_password: apppassword
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Install docker-compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create app directory
+      file:
+        path: /opt/backend
+        state: directory
+
+    - name: Create docker-compose file
+      copy:
+        dest: /opt/backend/docker-compose.yml
+        content: |
+          version: "3.8"
+          services:
+            backend:
+              image: m1sse/fastapi-backend:latest
+              deploy:
+                replicas: 3
+              environment:
+                DATABASE_URL: postgresql://{{ db_user }}:{{ db_password }}@{{ db_host }}:5432/{{ db_name }}
+              ports:
+                - "8000-8002:8000"
+
+    - name: Run backend containers
+      command: docker-compose up -d
+      args:
+        chdir: /opt/backend

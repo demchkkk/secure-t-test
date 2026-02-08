@@ -1,0 +1,11 @@
+- name: Base setup
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+- import_playbook: postgres.yml
+- import_playbook: backend.yml
+- import_playbook: nginx.yml

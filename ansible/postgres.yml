@@ -1,0 +1,51 @@
+- hosts: db
+  become: true
+  vars:
+    postgres_version: 16
+    db_name: appdb
+    db_user: appuser
+    db_password: apppassword
+
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - wget
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Add PostgreSQL repository key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt jammy-pgdg main"
+        state: present
+
+    - name: Install PostgreSQL
+      apt:
+        name: "postgresql-{{ postgres_version }}"
+        state: present
+        update_cache: yes
+
+    - name: Ensure PostgreSQL is running
+      service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Create database
+      become_user: postgres
+      postgresql_db:
+        name: "{{ db_name }}"
+
+    - name: Create user
+      become_user: postgres
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        db: "{{ db_name }}"
+        priv: ALL
