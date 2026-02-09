@@ -5,6 +5,7 @@
     - name: Update apt cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
 
 - import_playbook: postgres.yml
 - import_playbook: backend.yml

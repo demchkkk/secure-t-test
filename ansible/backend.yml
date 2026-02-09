@@ -2,9 +2,9 @@
   become: true
   vars:
     db_host: 192.168.56.12
-    db_name: appdb
-    db_user: appuser
-    db_password: apppassword
+    db_name: app_db
+    db_user: app_user
+    db_password: secretpassword
 
   tasks:
     - name: Install Docker
@@ -37,14 +37,20 @@
           services:
             backend:
               image: m1sse/fastapi-backend:latest
-              deploy:
-                replicas: 3
               environment:
-                DATABASE_URL: postgresql://{{ db_user }}:{{ db_password }}@{{ db_host }}:5432/{{ db_name }}
+                DB_HOST: "{{ db_host }}"
+                DB_PORT: "5432"
+                DB_NAME: "{{ db_name }}"
+                DB_USER: "{{ db_user }}"
+                DB_PASSWORD: "{{ db_password }}"
               ports:
                 - "8000-8002:8000"
+              restart: unless-stopped
 
-    - name: Run backend containers
-      command: docker-compose up -d
+    - name: Run backend containers with scale
+      shell: |
+        cd /opt/backend
+        docker-compose down 2>/dev/null || true
+        docker-compose up -d --scale backend=3
       args:
-        chdir: /opt/backend
+        executable: /bin/bash

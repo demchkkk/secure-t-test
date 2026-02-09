@@ -3,14 +3,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "control" do |c|
     c.vm.hostname = "control"
-    c.vm.network "private_network", ip: "192.168.56.5"
-    c.vm.provider "virtualbox" do |vb|
-      vb.memory = 512
-    end
-    c.vm.provision "shell", inline: <<-SHELL
-      apt update
-      apt install -y ansible
-    SHELL
+    c.vm.network "private_network", ip: "192.168.56.2"
+    c.vm.provision "shell", inline: "apt-get update && apt-get install -y ansible"
   end
 
   config.vm.define "nginx" do |n|

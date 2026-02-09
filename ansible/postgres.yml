@@ -1,51 +1,74 @@
-- hosts: db
+---
+- name: PostgreSQL setup
+  hosts: db
   become: true
   vars:
-    postgres_version: 16
-    db_name: appdb
-    db_user: appuser
-    db_password: apppassword
+    postgres_db: app_db
+    postgres_user: app_user
+    postgres_password: secretpassword
 
   tasks:
-    - name: Install prerequisites
-      apt:
-        name:
-          - wget
-          - ca-certificates
-        state: present
-        update_cache: yes
-
-    - name: Add PostgreSQL repository key
-      apt_key:
-        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
-        state: present
-
-    - name: Add PostgreSQL repository
-      apt_repository:
-        repo: "deb http://apt.postgresql.org/pub/repos/apt jammy-pgdg main"
-        state: present
-
     - name: Install PostgreSQL
       apt:
-        name: "postgresql-{{ postgres_version }}"
+        name: postgresql
         state: present
-        update_cache: yes
 
-    - name: Ensure PostgreSQL is running
+    - name: Install psycopg2 for Ansible PostgreSQL modules
+      apt:
+        name: python3-psycopg2
+        state: present
+
+    - name: Stop PostgreSQL to modify config
+      service:
+        name: postgresql
+        state: stopped
+
+    - name: Configure pg_hba.conf for trust auth
+      shell: |
+        for file in /etc/postgresql/*/main/pg_hba.conf; do
+          if [ -f "$file" ]; then
+            sudo sed -i 's/^local\s\+all\s\+postgres\s\+peer/local   all   postgres   trust/' "$file"
+          fi
+        done
+
+    - name: Start PostgreSQL
       service:
         name: postgresql
         state: started
-        enabled: true
 
     - name: Create database
-      become_user: postgres
       postgresql_db:
-        name: "{{ db_name }}"
+        name: "{{ postgres_db }}"
+        state: present
+        login_user: postgres
 
     - name: Create user
-      become_user: postgres
       postgresql_user:
-        name: "{{ db_user }}"
-        password: "{{ db_password }}"
-        db: "{{ db_name }}"
-        priv: ALL
+        name: "{{ postgres_user }}"
+        password: "{{ postgres_password }}"
+        state: present
+        login_user: postgres
+
+    - name: Grant privileges
+      postgresql_owner:
+        db: "{{ postgres_db }}"
+        new_owner: "{{ postgres_user }}"
+        login_user: postgres
+
+    - name: Configure PostgreSQL for external access
+      shell: |
+        sudo sed -i "s/^#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/*/main/postgresql.conf
+        sudo sed -i "s/^listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/*/main/postgresql.conf
+        
+        if ! sudo grep -q "192.168.56.0/24" /etc/postgresql/*/main/pg_hba.conf; then
+          sudo sed -i "/^# IPv4 local connections:/a host    all             all             192.168.56.0/24        md5" /etc/postgresql/*/main/pg_hba.conf
+        fi
+        
+        sudo sed -i 's/^local\s\+all\s\+postgres\s\+trust/local   all   postgres   peer/' /etc/postgresql/*/main/pg_hba.conf
+      notify: restart postgres
+
+  handlers:
+    - name: restart postgres
+      service:
+        name: postgresql
+        state: restarted
