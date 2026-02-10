@@ -40,6 +40,18 @@ http://192.168.56.10/docs
 vagrant ssh backend
 cd /opt/backend
 docker-compose up -d --scale backend=5
+###Если не работает с Docker-compose, добавить реплики через Docker
+for port in {8000..8004}; do
+  sudo docker run -d \
+    --name "backend-$port" \
+    -p $port:8000 \
+    -e DB_HOST="192.168.56.12" \
+    -e DB_PORT="5432" \
+    -e DB_NAME="app_db" \
+    -e DB_USER="app_user" \
+    -e DB_PASSWORD="secretpassword" \
+    m1sse/fastapi-backend:latest
+done
 ```
 ### 2. Обновить конфигурацию nginx
 ```
