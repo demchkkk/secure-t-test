@@ -25,7 +25,7 @@ vagrant up
 ```bash
 vagrant ssh control
 cd /vagrant/ansible
-./setup-ssh.sh # подготовка ssh-ключей для взаимодействия Ansible с другой инфраструктурой
+./ssh-setup.sh # подготовка ssh-ключей для взаимодействия Ansible с другой инфраструктурой
 ansible-playbook -i inventory.ini site.yml
 ```
 ## Масштабирование
