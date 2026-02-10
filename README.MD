@@ -35,8 +35,6 @@ ansible-playbook -i inventory.ini site.yml
 ```bash
 vagrant ssh backend
 cd /opt/backend
-vagrant ssh backend
-cd /opt/backend
 docker-compose up -d --scale backend=5
 ```
 ### 2. Обновить конфигурацию nginx
