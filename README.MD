@@ -40,7 +40,8 @@ http://192.168.56.10/docs
 vagrant ssh backend
 cd /opt/backend
 docker-compose up -d --scale backend=5
-###Если не работает с Docker-compose, добавить реплики через Docker
+
+###Если не работает с Docker-compose, добавить реплики через Docker. Пример
 for port in {8000..8004}; do
   sudo docker run -d \
     --name "backend-$port" \
